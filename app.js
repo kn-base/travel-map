@@ -194,10 +194,10 @@
     wheelPxPerZoomLevel: 90,
     attributionControl: true,
   });
-  const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
+  // OpenStreetMapの標準地図（無料・登録不要）。CSSでグレーに加工して淡く見せる
+  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
   map.attributionControl.setPrefix(false);
   const linesLayer = L.layerGroup().addTo(map);

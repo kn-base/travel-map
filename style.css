@@ -52,7 +52,7 @@ button { font: inherit; color: inherit; }
 }
 body.ready #map { opacity: 1; }
 .leaflet-container { font-family: var(--sans); background: #f4f4f2; }
-.leaflet-tile-pane { filter: grayscale(1) contrast(.92) brightness(1.03); }
+.leaflet-tile-pane { filter: grayscale(1) contrast(.78) brightness(1.12); opacity: .9; }
 .leaflet-control-attribution {
   background: rgba(255,255,255,.7) !important;
   color: var(--muted) !important;
