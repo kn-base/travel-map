@@ -21,7 +21,7 @@
     ship:       { label: '船',     dash: '2 8',   weight: 1.8 },
     other:      { label: 'その他', dash: '4 5',   weight: 1.4 },
   };
-  const LINE_COLOR = '#2ee860'; // 経路・移動の線（蛍光寄りの緑。淡いグレーの地図の上で目立つ色）
+  const LINE_COLOR = '#00cf8f'; // 経路・移動の線（青みのある鮮やかな緑。お酒のピンの黄緑と区別できる色）
   const LS_SETTINGS = 'travel.settings';
   const LS_CACHE = 'travel.cache';
   const DEFAULT_PATH = 'private/travel/trips.json';
