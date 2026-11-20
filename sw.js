@@ -1,5 +1,5 @@
 // 旅の記録 — オフラインでも開けるようにアプリ本体を保存しておく
-const VERSION = 'v9';
+const VERSION = 'v10';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './manifest.webmanifest',

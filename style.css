@@ -23,7 +23,6 @@
   --ease-soft: cubic-bezier(.4, 0, .2, 1);
 
   --sheet-peek: 44vh;
-  --sheet-full: 86vh;
   --panel-w: 400px;
 
   --safe-top: env(safe-area-inset-top, 0px);
@@ -61,7 +60,7 @@ body.ready #map { opacity: 1; }
 }
 .leaflet-control-attribution a { color: var(--muted) !important; }
 .leaflet-control-zoom { display: none; }
-.leaflet-bottom.leaflet-right { bottom: calc(var(--sheet-peek) + 4px); transition: bottom .6s var(--ease); }
+.leaflet-bottom.leaflet-right { bottom: calc(var(--sheet-h, var(--sheet-peek)) + 4px); transition: bottom .6s var(--ease); }
 
 /* ピン */
 .pin-wrap { background: none; border: none; }
@@ -141,11 +140,17 @@ body.ready .settings-btn { opacity: 1; }
   transition: transform .9s var(--ease) .35s, height .6s var(--ease);
 }
 body.ready .sheet { transform: none; }
-.sheet.expanded { height: var(--sheet-full); }
+/* 3段階：min（地図を大きく）／peek（半分）／full（全画面）。灰色の棒を上下にスワイプして切り替える */
+.sheet.full { height: 100vh; height: 100dvh; border-radius: 0; }
+.sheet.min { height: calc(84px + var(--safe-bottom)); }
+.sheet.dragging { transition: transform .9s var(--ease) .35s; }
 .grabber {
-  flex: none; height: 26px; border: 0; background: none; cursor: pointer;
+  flex: none; height: 34px; border: 0; background: none; cursor: grab;
   display: grid; place-items: center;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  transition: height .6s var(--ease), padding .6s var(--ease);
 }
+.sheet.full .grabber { height: calc(34px + var(--safe-top)); padding-top: var(--safe-top); }
 .grabber span { width: 38px; height: 4px; border-radius: 2px; background: #d9d7d2; }
 .sheet-body {
   flex: 1; overflow-y: auto; overscroll-behavior: contain;

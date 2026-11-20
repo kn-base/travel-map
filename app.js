@@ -215,7 +215,7 @@
   function isWide() { return window.matchMedia('(min-width: 820px)').matches; }
   function viewPadding() {
     if (isWide()) return { paddingTopLeft: [416 + 40, 60], paddingBottomRight: [60, 60] };
-    return { paddingTopLeft: [40, 130], paddingBottomRight: [40, sheet.offsetHeight + 30] };
+    return { paddingTopLeft: [40, 130], paddingBottomRight: [40, sheetHeights()[sheetState] + 30] };
   }
   function worldView() {
     const w = map.getSize().x - (isWide() ? 416 : 0);
@@ -380,6 +380,7 @@
 
   // ---------- 選択 ----------
   function selectTrip(id) {
+    if (sheetState !== 'peek' && !isWide()) setSheet('peek');
     selectedId = id;
     activeItemId = null;
     const t = data.trips.find(x => x.id === id);
@@ -396,6 +397,7 @@
     showWorldOnMap();
   }
   function setActive(id, { fly = true } = {}) {
+    if (sheetState === 'full' && fly && !isWide()) setSheet('peek');
     activeItemId = id;
     document.querySelectorAll('.tl-item').forEach(el => el.classList.toggle('is-active', el.dataset.id === id));
     const t = data.trips.find(x => x.id === selectedId);
@@ -541,9 +543,61 @@
     if (item) setActive(item.dataset.id);
   });
 
-  $('#grabber').addEventListener('click', () => {
-    sheet.classList.toggle('expanded');
+  // ---------- 下の記録表示：スワイプで min／peek／full を切り替える ----------
+  let sheetState = 'peek';
+  // 画面下の安全領域（iPhoneのホームバー分）の高さを測る
+  const safeProbe = document.createElement('div');
+  safeProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;height:env(safe-area-inset-bottom,0px)';
+  document.body.appendChild(safeProbe);
+  function sheetHeights() {
+    const H = window.innerHeight;
+    return { min: 84 + safeProbe.offsetHeight, peek: Math.round(H * 0.44), full: H };
+  }
+  function setSheet(state) {
+    sheetState = state;
+    sheet.classList.remove('min', 'full');
+    if (state !== 'peek') sheet.classList.add(state);
+    sheet.style.height = '';
+    document.documentElement.style.setProperty('--sheet-h', `${sheetHeights()[state]}px`);
+    $('#grabber').setAttribute('aria-label', state === 'full' ? '一覧を縮める' : '一覧を広げる');
+  }
+  const grab = $('#grabber');
+  let drag = null;
+  grab.addEventListener('pointerdown', e => {
+    if (isWide()) return;
+    drag = { y: e.clientY, h: sheet.offsetHeight, t: performance.now(), moved: false, samples: [[e.clientY, performance.now()]] };
+    grab.setPointerCapture(e.pointerId);
+    sheet.classList.add('dragging');
   });
+  grab.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dy = drag.y - e.clientY;
+    if (Math.abs(dy) > 5) drag.moved = true;
+    const hs = sheetHeights();
+    const h = Math.max(hs.min - 30, Math.min(hs.full, drag.h + dy));
+    sheet.style.height = `${h}px`;
+    drag.samples.push([e.clientY, performance.now()]);
+    if (drag.samples.length > 5) drag.samples.shift();
+  });
+  const endDrag = e => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    sheet.classList.remove('dragging');
+    if (!d.moved) { setSheet(sheetState === 'full' ? 'peek' : sheetState === 'min' ? 'peek' : 'full'); return; }
+    // 指を離したときの勢いも加味して、近い段階に吸い付かせる
+    const [y0, t0] = d.samples[0];
+    const v = (y0 - e.clientY) / Math.max(1, performance.now() - t0); // 上向きが正（px/ms）
+    const hs = sheetHeights();
+    const target = sheet.offsetHeight + v * 220;
+    const order = ['min', 'peek', 'full'];
+    let best = order.reduce((a, b) => Math.abs(hs[b] - target) < Math.abs(hs[a] - target) ? b : a);
+    if (Math.abs(v) > 0.5 && best === sheetState) best = order[Math.max(0, Math.min(2, order.indexOf(sheetState) + (v > 0 ? 1 : -1)))];
+    setSheet(best);
+  };
+  grab.addEventListener('pointerup', endDrag);
+  grab.addEventListener('pointercancel', endDrag);
+  grab.addEventListener('click', e => { if (e.detail === 0) setSheet(sheetState === 'full' ? 'peek' : 'full'); }); // キーボード操作用
+  window.addEventListener('resize', () => setSheet(sheetState));
   $('#settings-btn').addEventListener('click', () => openSettings());
 
   // ---------- モーダル・フォーム ----------
