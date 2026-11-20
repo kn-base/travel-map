@@ -1,5 +1,5 @@
 // 旅の記録 — オフラインでも開けるようにアプリ本体を保存しておく
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './manifest.webmanifest',
@@ -17,7 +17,8 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(k => k !== SHELL).map(k => caches.delete(k))
+    // 同じ kn-base.github.io の持ち物アプリの保存分は消さない（自分の「shell-」だけ消す）
+    keys.filter(k => k.startsWith('shell-') && k !== SHELL).map(k => caches.delete(k))
   )).then(() => self.clients.claim()));
 });
 
