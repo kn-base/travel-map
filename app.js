@@ -547,16 +547,17 @@
   let sheetState = 'peek';
   // 画面下の安全領域（iPhoneのホームバー分）の高さを測る
   const safeProbe = document.createElement('div');
-  safeProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;height:env(safe-area-inset-bottom,0px)';
+  safeProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;height:env(safe-area-inset-bottom,0px);width:env(safe-area-inset-top,0px)';
   document.body.appendChild(safeProbe);
   function sheetHeights() {
     const H = window.innerHeight;
-    return { min: 84 + safeProbe.offsetHeight, peek: Math.round(H * 0.44), full: H };
+    return { min: 84 + safeProbe.offsetHeight, peek: Math.round(H * 0.44), full: H - safeProbe.offsetWidth - 10 };
   }
   function setSheet(state) {
     sheetState = state;
     sheet.classList.remove('min', 'full');
     if (state !== 'peek') sheet.classList.add(state);
+    document.body.classList.toggle('sheet-full', state === 'full');
     sheet.style.height = '';
     document.documentElement.style.setProperty('--sheet-h', `${sheetHeights()[state]}px`);
     $('#grabber').setAttribute('aria-label', state === 'full' ? '一覧を縮める' : '一覧を広げる');
@@ -574,7 +575,7 @@
     const dy = drag.y - e.clientY;
     if (Math.abs(dy) > 5) drag.moved = true;
     const hs = sheetHeights();
-    const h = Math.max(hs.min - 30, Math.min(hs.full, drag.h + dy));
+    const h = Math.max(hs.min - 30, Math.min(hs.full + 20, drag.h + dy));
     sheet.style.height = `${h}px`;
     drag.samples.push([e.clientY, performance.now()]);
     if (drag.samples.length > 5) drag.samples.shift();
