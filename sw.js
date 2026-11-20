@@ -1,11 +1,14 @@
 // 旅の記録 — オフラインでも開けるようにアプリ本体を保存しておく
-const VERSION = 'v12';
+const VERSION = 'v13';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = [
   './', './index.html', './style.css', './app.js', './manifest.webmanifest',
   './icons/icon.svg', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js',
+  'https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.3/leaflet-maplibre-gl.js',
 ];
 
 self.addEventListener('install', e => {
@@ -27,7 +30,7 @@ self.addEventListener('fetch', e => {
   if (url.hostname === 'api.github.com' || url.hostname.endsWith('nominatim.openstreetmap.org')) return;
 
   // 地図タイルは保存しない（OpenStreetMapの利用ルールに合わせ、ブラウザの通常のキャッシュに任せる）
-  if (url.hostname === 'tile.openstreetmap.org') return;
+  if (url.hostname === 'tile.openstreetmap.org' || url.hostname.endsWith('openfreemap.org')) return;
 
   // アプリ本体：保存分をすぐ出し、裏で新しいものに入れ替える
   if (url.origin === location.origin || url.hostname === 'unpkg.com') {

@@ -200,13 +200,72 @@
     zoomSnap: 0.25,
     zoomDelta: 0.5,
     wheelPxPerZoomLevel: 90,
+    maxZoom: 18,
     attributionControl: true,
   });
-  // OpenStreetMapの標準地図（無料・登録不要）。CSSでグレーに加工して淡く見せる
-  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
+  // ---------- 背景の地図 ----------
+  // OpenFreeMap の Positron（無料・登録不要）を、地名・駅・大きな道だけに絞って使う。
+  // 使えない環境（WebGL非対応や通信失敗）では、OpenStreetMapの標準地図をグレーにして代わりに出す。
+  const BASE_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+  const OFM_ATTR = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+  const JA_NAME = ['coalesce', ['get', 'name:ja'], ['get', 'name']];
+
+  function simplifyStyle(st) {
+    const keepRoad = id => /motorway|trunk|primary|major/.test(id) && !/rail|transit|path|minor|service|track|pier|ferry|aeroway|name|label/.test(id);
+    const font = (st.layers.find(l => l['source-layer'] === 'place' && l.layout && l.layout['text-font']) || {}).layout?.['text-font'] || ['Noto Sans Regular'];
+    const src = Object.keys(st.sources).find(k => st.sources[k].type === 'vector') || 'openmaptiles';
+    st.layers = st.layers.filter(l => {
+      const sl = l['source-layer'];
+      if (l.type === 'background') return true;
+      if (!sl) return false;
+      if (['water', 'waterway', 'boundary', 'place', 'water_name'].includes(sl)) return true;
+      if (sl === 'transportation') return l.type === 'line' && keepRoad(l.id);
+      return false; // 建物・土地利用・公園・お店などの施設・道路名などは出さない
+    });
+    // 地名は日本語の名前があれば日本語で
+    st.layers.forEach(l => {
+      if (l.type === 'symbol' && (l['source-layer'] === 'place' || l['source-layer'] === 'water_name') && l.layout) l.layout['text-field'] = JA_NAME;
+    });
+    // 駅（拡大したときだけ）
+    const isStation = ['all', ['==', ['get', 'class'], 'railway'], ['match', ['get', 'subclass'], ['station', 'halt'], true, false]];
+    st.layers.push(
+      { id: 'tl-station-dot', type: 'circle', source: src, 'source-layer': 'poi', minzoom: 12, filter: isStation,
+        paint: { 'circle-radius': 2.6, 'circle-color': '#9a9aa0', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1 } },
+      { id: 'tl-station-label', type: 'symbol', source: src, 'source-layer': 'poi', minzoom: 13, filter: isStation,
+        layout: { 'text-field': JA_NAME, 'text-font': font, 'text-size': 11, 'text-anchor': 'top', 'text-offset': [0, 0.6], 'text-max-width': 8 },
+        paint: { 'text-color': '#77777c', 'text-halo-color': '#ffffff', 'text-halo-width': 1.2 } },
+    );
+    return st;
+  }
+
+  const baseLayer = {
+    ready: false,
+    onReady: [],
+    whenReady(fn) { if (this.ready) fn(); else this.onReady.push(fn); },
+    done() { if (this.ready) return; this.ready = true; this.onReady.splice(0).forEach(f => f()); },
+  };
+  function useRasterFallback() {
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, className: 'osm-raster',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map).once('load', () => baseLayer.done());
+  }
+  async function loadBaseMap() {
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl');
+      if (!gl || !window.maplibregl || !L.maplibreGL) throw new Error('no webgl');
+      const res = await fetch(BASE_STYLE);
+      if (!res.ok) throw new Error('style');
+      const style = simplifyStyle(await res.json());
+      const layer = L.maplibreGL({ style, attributionControl: { customAttribution: OFM_ATTR }, interactive: false }).addTo(map);
+      const gm = layer.getMaplibreMap();
+      gm.once('idle', () => baseLayer.done());
+      gm.on('error', e => console.warn('map', e && e.error && e.error.message));
+    } catch (e) {
+      useRasterFallback();
+    }
+  }
+  loadBaseMap();
   map.attributionControl.setPrefix(false);
   const linesLayer = L.layerGroup().addTo(map);
   const pinsLayer = L.layerGroup().addTo(map);
@@ -968,7 +1027,7 @@
       document.body.classList.add('ready');
       setTimeout(drawWorld, 700);
     };
-    tiles.once('load', start);
+    baseLayer.whenReady(start);
     setTimeout(start, 1500); // 通信が遅くても画面は出す
     refresh(false);
   }
