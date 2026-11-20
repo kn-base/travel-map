@@ -21,7 +21,7 @@
     ship:       { label: '船',     dash: '2 8',   weight: 1.8 },
     other:      { label: 'その他', dash: '4 5',   weight: 1.4 },
   };
-  const LINE_COLOR = '#4fae92'; // 経路・移動の線（彩度を抑えた青緑。お酒のピンの黄緑と区別でき、ごちゃつかない色）
+  const LINE_COLOR = '#00e676'; // 経路・移動の線（蛍光緑。少し青みに寄せて、お酒のピンの黄緑と区別する）
   const LS_SETTINGS = 'travel.settings';
   const LS_CACHE = 'travel.cache';
   const DEFAULT_PATH = 'private/travel/trips.json';
@@ -323,7 +323,7 @@
     // 訪れた順に直線でつなぐ
     if (places.length > 1) {
       const route = L.polyline(places.map(p => [p.lat, p.lng]), {
-        color: LINE_COLOR, opacity: 0.5, weight: 1.2, lineCap: 'round', lineJoin: 'round', interactive: false, className: 'route',
+        color: LINE_COLOR, opacity: 0.9, weight: 1.2, lineCap: 'round', lineJoin: 'round', interactive: false, className: 'route',
       }).addTo(linesLayer);
       animateLine(route, 150);
     }
@@ -332,7 +332,7 @@
       const md = MODES[m.mode] || MODES.other;
       const pts = md.curve ? arc(m.from, m.to) : [[m.from.lat, m.from.lng], [m.to.lat, m.to.lng]];
       const line = L.polyline(pts, {
-        color: LINE_COLOR, opacity: 0.8, weight: md.weight + 0.3, dashArray: md.dash, lineCap: 'round', interactive: false, className: 'route',
+        color: LINE_COLOR, opacity: 1, weight: md.weight + 0.3, dashArray: md.dash, lineCap: 'round', interactive: false, className: 'route',
       }).addTo(linesLayer);
       animateLine(line, 300 + i * 120);
     });
