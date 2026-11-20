@@ -131,7 +131,14 @@
   }
   async function loadRemote() {
     const res = await gh('GET');
-    if (res.status === 404) { data = EMPTY(); sha = null; return 'missing'; }
+    if (res.status === 404) {
+      // GitHubは「権限がない」ときも404を返すので、リポジトリ自体が見えるかで原因を分ける
+      const repoRes = await fetch(`https://api.github.com/repos/${settings.repo.trim()}`, {
+        cache: 'no-store', headers: { Authorization: `Bearer ${settings.token.trim()}`, Accept: 'application/vnd.github+json' },
+      });
+      if (!repoRes.ok) throw new Error(`リポジトリ「${settings.repo.trim()}」が見つからないか、トークンにこのリポジトリの権限がありません`);
+      data = EMPTY(); sha = null; return 'missing';
+    }
     if (res.status === 401 || res.status === 403) throw new Error('トークンが無効か、権限が足りません');
     if (!res.ok) throw new Error(`読み込みに失敗しました（${res.status}）`);
     const j = await res.json();
@@ -885,11 +892,11 @@
     try {
       if (announce) toast('読み込んでいます…', 10000);
       const r = await loadRemote();
-      if (r === 'missing') toast('記録ファイルがまだありません。旅行を追加すると作られます', 3600);
+      if (r === 'missing') toast(`「${settings.path.trim()}」が見つかりません。ファイルの場所を確認してください（新しく始める場合は、旅行を追加すると作られます）`, 6000);
       else if (announce) toast('つながりました');
       if (JSON.stringify(data) !== before) render();
     } catch (e) {
-      toast(e.message, 3600);
+      toast(e.message, 6000);
     }
   }
 
